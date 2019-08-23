@@ -3,6 +3,7 @@ import sys
 import time
 import signal
 import importlib
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -314,7 +315,8 @@ def validate(val_loader, model, criterion, class_to_idx=None):
 
     end = time.time()
     with torch.no_grad():
-        for i, (input, target, item_id) in enumerate(val_loader):
+        pbar = tqdm(val_loader)
+        for i, (input, target, item_id) in enumerate(pbar):
 
             if config['nclips_val'] > 1:
                 input_var = list(input.split(config['clip_size'], 2))
@@ -346,16 +348,20 @@ def validate(val_loader, model, criterion, class_to_idx=None):
             end = time.time()
 
             if i % config["print_freq"] == 0:
-                print('Test: [{0}/{1}]\t'
-                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                      'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                          i, len(val_loader), batch_time=batch_time, loss=losses,
-                          top1=top1, top5=top5))
+                print_str = (
+                    'Test: [{0}/{1}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                    'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                        i, len(val_loader), batch_time=batch_time, loss=losses,
+                        top1=top1, top5=top5))
+                pbar.set_description(print_str)
+                # print(print_str)
 
     print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
+    sys.stdout.flush()
 
     if args.eval_only:
         logits_matrix = np.concatenate(logits_matrix)
