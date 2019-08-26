@@ -28,10 +28,10 @@ import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config_file', default='configs/pretrained/config_model1_feats.json')
+parser.add_argument('--config_file', default='./configs/pretrained/config_model1_feats.json')
 parser.add_argument('--batch_size', type=int, default=1)
-parser.add_argument('--num_workers', type=int, default=4)
-parser.add_argument('--out_file', default='feats.h5')
+parser.add_argument('--num_workers', type=int, default=0)
+parser.add_argument('--out_file', default='/mnt/nas2/GrimaRepo/jahurtado/codes/smth-smth-v2-baseline-with-models/data/s2s_feats_10percent.h5')
 parser.add_argument('--train', action='store_true')
 parser.add_argument('--val', action='store_true')
 parser.add_argument('--test', action='store_true')
@@ -109,33 +109,44 @@ val_data = VideoFolder(root=config['data_folder'],
                        get_item_id=True,
                        )
 val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-test_data = VideoFolder(root=config['data_folder'],
-                       json_file_input=config['json_data_test'],
-                       json_file_labels=config['json_file_labels'],
-                       clip_size=config['clip_size'],
-                       nclips=config['nclips_val'],
-                       step_size=config['step_size_val'],
-                       is_val=True,
-                       transform_pre=transform_eval_pre,
-                       transform_post=transform_post,
-                       get_item_id=True,
-                       )
-test_dataloader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+# test_data = VideoFolder(root=config['data_folder'],
+#                        json_file_input=config['json_data_test'],
+#                        json_file_labels=config['json_file_labels'],
+#                        clip_size=config['clip_size'],
+#                        nclips=config['nclips_val'],
+#                        step_size=config['step_size_val'],
+#                        is_val=True,
+#                        transform_pre=transform_eval_pre,
+#                        transform_post=transform_post,
+#                        get_item_id=True,
+#                        )
+# test_dataloader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
 def save_features(dataloader, file_path, split):
     with torch.no_grad():
         feats = []
+        feats_target = []
+        feats_id = []
         for input_data, target, item_id in train_dataloader:
-            out = conv_model(input_data)
-            feats.append(out.detach().numpy())
-        feats = np.concatenate(feats)
+            #out = conv_model(input_data)
+            #feats.append(out.detach().numpy())
+            feats_target.append(target.detach().numpy())
+            feats_id.append(item_id.detach().numpy())
+        # feats = np.concatenate(feats)
+        feats_target = np.concatenate(feats_target)
+        feats_id = np.concatenate(feats_id)
         with h5py.File(file_path, 'a') as h5f:
-            h5f.create_dataset(split, data=feats)
+            # h5f.create_dataset(split, data=feats)
+            h5f.create_dataset(split+'_target', data=feats_target)
+            h5f.create_dataset(split+'_id', data=feats_id)
 
-h5py.File(args.out_file, 'w')
+# h5py.File(args.out_file, 'w')
 if args.train:
     save_features(train_dataloader, args.out_file, 'train')
 if args.val is not None:
     save_features(val_dataloader, args.out_file, 'val')
-if args.test is not None:
-    save_features(test_dataloader, args.out_file, 'test')
+#if args.test is not None:
+#    save_features(test_dataloader, args.out_file, 'test')
+
+
+

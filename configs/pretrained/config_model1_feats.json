@@ -4,13 +4,13 @@
 
     "input_mode": "av",
 
-    "data_folder": "../something-to-something/frames",
-    "json_data_train": "../something-to-something/train.json",
-    "json_data_val": "../something-to-something/val.json",
+    "data_folder": "/mnt/nas2/GrimaRepo/datasets/20BN-SOMETHING-SOMETHING-V2-1/20bn-something-something-v2-frames",
+    "json_data_train": "/mnt/nas2/GrimaRepo/aespinosa/smth-smth-v2-baseline-with-models/notebooks/train_10percent.json",
+    "json_data_val": "/mnt/nas2/GrimaRepo/aespinosa/smth-smth-v2-baseline-with-models/notebooks/val_10percent.json",
     "json_data_test": "../something-to-something/test.json",
-    "json_file_labels": "../something-to-something/labels.json",
+    "json_file_labels": "/mnt/nas2/GrimaRepo/datasets/20BN-SOMETHING-SOMETHING-V2-1/something-something-v2-labels.json",
 
-    "num_workers": 5,
+    "num_workers": 0,
 
     "num_classes": 174,
     "batch_size": 30,
