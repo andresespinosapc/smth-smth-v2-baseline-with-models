@@ -1,18 +1,9 @@
 import os
-import cv2
-import sys
 import importlib
 import torch
 from torch.utils.data import DataLoader
 import torchvision
 import numpy as np
-
-# sys.path.insert(0, "../")
-
-# imports for displaying a video an IPython cell
-import io
-import base64
-from IPython.display import HTML
 
 from data_parser import WebmDataset
 from data_loader_av import VideoFolder
@@ -31,7 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config_file', default='./configs/pretrained/config_model1_feats.json')
 parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--num_workers', type=int, default=0)
-parser.add_argument('--out_file', default='/mnt/nas/GrimaRepo/jahurtado/s2s_feats_10percent.h5')
+parser.add_argument('--out_file', default='/mnt/nas/GrimaRepo/jahurtado/smth-smth-v2-baseline-with-models/data/s2s_feats_10percent.h5')
 parser.add_argument('--train', action='store_true')
 parser.add_argument('--val', action='store_true')
 parser.add_argument('--test', action='store_true')
@@ -127,14 +118,16 @@ def save_features(dataloader, file_path, split, feats):
         #feats = []
         feats_target = []
         feats_id = []
+        print("To Read")
         for input_data, target, item_id in train_dataloader:
             #out = conv_model(input_data)
             #feats.append(out.detach().numpy())
             feats_target.append(target.detach().numpy())
-            feats_id.append(item_id.detach().numpy())
+            feats_id.append(item_id[0])
         # feats = np.concatenate(feats)
         feats_target = np.concatenate(feats_target)
         feats_id = np.concatenate(feats_id)
+        print("To Save")
         with h5py.File(file_path, 'a') as h5f:
             h5f.create_dataset(split, data=feats)
             h5f.create_dataset(split+'_target', data=feats_target)
@@ -147,8 +140,10 @@ with h5py.File('/mnt/nas/GrimaRepo/aespinosa/s2s_feats_10percent.h5') as h5f:
 
 if args.train:
     save_features(train_dataloader, args.out_file, 'train', train_feat)
+    print("Train Ready")
 if args.val is not None:
     save_features(val_dataloader, args.out_file, 'val', val_feat)
+    print("Val Ready")
 #if args.test is not None:
 #    save_features(test_dataloader, args.out_file, 'test')
 
