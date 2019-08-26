@@ -122,9 +122,9 @@ val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False,
 #                        )
 # test_dataloader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-def save_features(dataloader, file_path, split):
+def save_features(dataloader, file_path, split, feats):
     with torch.no_grad():
-        feats = []
+        #feats = []
         feats_target = []
         feats_id = []
         for input_data, target, item_id in train_dataloader:
@@ -136,15 +136,19 @@ def save_features(dataloader, file_path, split):
         feats_target = np.concatenate(feats_target)
         feats_id = np.concatenate(feats_id)
         with h5py.File(file_path, 'a') as h5f:
-            # h5f.create_dataset(split, data=feats)
+            h5f.create_dataset(split, data=feats)
             h5f.create_dataset(split+'_target', data=feats_target)
             h5f.create_dataset(split+'_id', data=feats_id)
 
-# h5py.File(args.out_file, 'w')
+
+with h5py.File('/mnt/nas/GrimaRepo/aespinosa/s2s_feats_10percent.h5') as h5f:
+    train_feat = h5f['train']
+    val_feat = h5f['val']
+
 if args.train:
-    save_features(train_dataloader, args.out_file, 'train')
+    save_features(train_dataloader, args.out_file, 'train', train_feat)
 if args.val is not None:
-    save_features(val_dataloader, args.out_file, 'val')
+    save_features(val_dataloader, args.out_file, 'val', val_feat)
 #if args.test is not None:
 #    save_features(test_dataloader, args.out_file, 'test')
 
