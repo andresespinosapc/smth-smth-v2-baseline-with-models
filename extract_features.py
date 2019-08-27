@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config_file', default='./configs/pretrained/config_model1_feats.json')
 parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--num_workers', type=int, default=0)
-parser.add_argument('--out_file', default='/mnt/nas/GrimaRepo/jahurtado/smth-smth-v2-baseline-with-models/data/s2s_feats_10percent.h5')
+parser.add_argument('--out_file', default='/mnt/nas/GrimaRepo/jahurtado/smth-smth-v2-baseline-with-models/data/s2s_feats_10percent.pkl')
 parser.add_argument('--train', action='store_true')
 parser.add_argument('--val', action='store_true')
 parser.add_argument('--test', action='store_true')
@@ -128,15 +128,22 @@ def save_features(dataloader, file_path, split, feats):
         feats_target = np.concatenate(feats_target)
         feats_id = np.concatenate(feats_id)
         print("To Save")
-        with h5py.File(file_path, 'a') as h5f:
-            h5f.create_dataset(split, data=feats)
-            h5f.create_dataset(split+'_target', data=feats_target)
-            h5f.create_dataset(split+'_id', data=feats_id)
+        dbfile = open(args.out_file, 'ab') 
+        pickle.dump({'target': feats_target, 'index': feats_id}, dbfile) 
+        dbfile.close() 
+        # with h5py.File(file_path, 'a') as h5f:
+        #     h5f.create_dataset(split, data=feats)
+        #     h5f.create_dataset(split+'_target', data=feats_target)
+        #     h5f.create_dataset(split+'_id', data=feats_id)
 
 
-with h5py.File('/mnt/nas/GrimaRepo/aespinosa/s2s_feats_10percent.h5') as h5f:
-    train_feat = h5f['train']
-    val_feat = h5f['val']
+# with h5py.File('/mnt/nas/GrimaRepo/aespinosa/s2s_feats_10percent.h5') as h5f:
+#     train_feat = h5f['train']
+#     val_feat = h5f['val']
+
+# h5py.File(args.out_file, 'w')
+
+import pickle 
 
 if args.train:
     save_features(train_dataloader, args.out_file, 'train', train_feat)

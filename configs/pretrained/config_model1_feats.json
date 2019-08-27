@@ -4,9 +4,9 @@
 
     "input_mode": "av",
 
-    "data_folder": "/mnt/nas2/GrimaRepo/datasets/20BN-SOMETHING-SOMETHING-V2-1/20bn-something-something-v2-frames",
-    "json_data_train": "/mnt/nas2/GrimaRepo/aespinosa/smth-smth-v2-baseline-with-models/notebooks/train_10percent.json",
-    "json_data_val": "/mnt/nas2/GrimaRepo/aespinosa/smth-smth-v2-baseline-with-models/notebooks/val_10percent.json",
+    "data_folder": "/mnt/nas/GrimaRepo/datasets/20BN-SOMETHING-SOMETHING-V2/20bn-something-something-v2",
+    "json_data_train": "/mnt/nas/GrimaRepo/aespinosa/smth-smth-v2-baseline-with-models/notebooks/train_10percent.json",
+    "json_data_val": "/mnt/nas/GrimaRepo/aespinosa/smth-smth-v2-baseline-with-models/notebooks/val_10percent.json",
     "json_data_test": "../something-to-something/test.json",
     "json_file_labels": "/mnt/nas2/GrimaRepo/datasets/20BN-SOMETHING-SOMETHING-V2-1/something-something-v2-labels.json",
 
