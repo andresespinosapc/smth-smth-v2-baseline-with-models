@@ -3,7 +3,7 @@ import numpy as np
 import pickle 
 
 import torchvision
-
+import h5py
 
 class FeatureLoader(torch.utils.data.Dataset):
 
@@ -14,32 +14,16 @@ class FeatureLoader(torch.utils.data.Dataset):
         self.get_item_id = get_item_id
         self.split=split
 
-        self.data = self.readFile()
-        self.target, self.ind = self.readPickle()
-
-    def readFileh5(self):
-        with h5py.File(self.path_features) as h5f:
-            if h5f['train'].shape[0] != h5f['train_target'].shape[0]:
-                print('Diferente cantidad de elementos y target en Train')
-            if h5f['val'].shape[0] != h5f['val_target'].shape[0]
-                print('Diferente cantidad de elementos y target en Val')
-
-            return h5f[self.split]
-
-    def readPickle(self):
-        dbfile = open(self.path_target, 'rb')
-        db = pickle.load(dbfile)
-
-        return db[self.split]['target'], db[self.split]['index'] 
+        self.data = h5py.File(self.path_features, 'r')[self.split]
 
     def __getitem__(self, index):
         """
         [!] FPS jittering doesn't work with AV dataloader as of now
         """
 
-        item = self.data[index]
-        target = self.target[index]
-        ind = self.ind[index]
+        item = self.data['data'][index]
+        target = self.data['target'][index]
+        ind = self.data['video_id'][index]
 
         # format data to torch
         if self.get_item_id:
@@ -48,12 +32,13 @@ class FeatureLoader(torch.utils.data.Dataset):
             return (item, target)
 
     def __len__(self):
-        return len(self.data['train'])
+        return len(self.target)
 
 
 if __name__ == '__main__':
 
-    loader = VideoFolder(root="/mnt/nas2/GrimaRepo/jahurtado/codes/smth-smth-v2-baseline-with-models/data/s2s_feats_10percent.h5")
+    loader = FeatureLoader(path_features="/mnt/nas2/GrimaRepo/jahurtado/codes/smth-smth-v2-baseline-with-models/data/s2s_feats_10percent.h5",
+                        path_target="")
 
     import time
     from tqdm import tqdm
