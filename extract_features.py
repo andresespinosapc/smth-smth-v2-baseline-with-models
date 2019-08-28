@@ -125,13 +125,20 @@ val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False,
 def save_features(dataloader, h5f, out_shape, split):
     data_len = len(dataloader.dataset)
     batch_size = dataloader.batch_size
-    dset = h5f.create_dataset(split, (data_len, *out_shape), dtype='f')
+    group = h5f.create_group(split)
+    data = group.create_dataset('data', (data_len, *out_shape), dtype='f')
+    targets = group.create_dataset('target', (data_len,), dtype='uint8')
+    video_ids = group.create_dataset('video_id', (data_len,), dtype='int32')
     with torch.no_grad():
         pbar = tqdm(dataloader)
         for i, (input_data, target, item_id) in enumerate(pbar):
             input_data = input_data.to(device)
             out = conv_model(input_data)
-            dset[i*batch_size : i*batch_size+out.shape[0]] = out.detach().cpu().numpy()
+            start = i * batch_size
+            end = i * batch_size + out.shape[0]
+            data[start:end] = out.detach().cpu().numpy()
+            targets[start:end] = target
+            video_ids[start:end] = list(map(int, item_id))
 
 # TEMP
 out_shape = (256, 72, 11, 11)
