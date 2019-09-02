@@ -12,7 +12,6 @@ import numpy as np
 # imports for displaying a video an IPython cell
 import io
 import base64
-from IPython.display import HTML
 
 from data_parser import WebmDataset
 from data_loader_av import VideoFolder
@@ -23,6 +22,7 @@ from transforms_video import *
 from utils import load_json_config, remove_module_from_checkpoint_state_dict
 from pprint import pprint
 
+from tqdm import tqdm
 import h5py
 import argparse
 
@@ -109,33 +109,44 @@ val_data = VideoFolder(root=config['data_folder'],
                        get_item_id=True,
                        )
 val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-test_data = VideoFolder(root=config['data_folder'],
-                       json_file_input=config['json_data_test'],
-                       json_file_labels=config['json_file_labels'],
-                       clip_size=config['clip_size'],
-                       nclips=config['nclips_val'],
-                       step_size=config['step_size_val'],
-                       is_val=True,
-                       transform_pre=transform_eval_pre,
-                       transform_post=transform_post,
-                       get_item_id=True,
-                       )
-test_dataloader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+# test_data = VideoFolder(root=config['data_folder'],
+#                        json_file_input=config['json_data_test'],
+#                        json_file_labels=config['json_file_labels'],
+#                        clip_size=config['clip_size'],
+#                        nclips=config['nclips_val'],
+#                        step_size=config['step_size_val'],
+#                        is_val=True,
+#                        transform_pre=transform_eval_pre,
+#                        transform_post=transform_post,
+#                        get_item_id=True,
+#                        )
+# test_dataloader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-def save_features(dataloader, file_path, split):
+def save_features(dataloader, h5f, out_shape, split):
+    data_len = len(dataloader.dataset)
+    batch_size = dataloader.batch_size
+    group = h5f.create_group(split)
+    data = group.create_dataset('data', (data_len, *out_shape), dtype='f')
+    targets = group.create_dataset('target', (data_len,), dtype='uint8')
+    video_ids = group.create_dataset('video_id', (data_len,), dtype='int32')
     with torch.no_grad():
-        feats = []
-        for input_data, target, item_id in train_dataloader:
+        pbar = tqdm(dataloader)
+        for i, (input_data, target, item_id) in enumerate(pbar):
+            input_data = input_data.to(device)
             out = conv_model(input_data)
-            feats.append(out.detach().numpy())
-        feats = np.concatenate(feats)
-        with h5py.File(file_path, 'a') as h5f:
-            h5f.create_dataset(split, data=feats)
+            start = i * batch_size
+            end = i * batch_size + out.shape[0]
+            data[start:end] = out.detach().cpu().numpy()
+            targets[start:end] = target
+            video_ids[start:end] = list(map(int, item_id))
 
-h5py.File(args.out_file, 'w')
-if args.train:
-    save_features(train_dataloader, args.out_file, 'train')
-if args.val is not None:
-    save_features(val_dataloader, args.out_file, 'val')
-if args.test is not None:
-    save_features(test_dataloader, args.out_file, 'test')
+# TEMP
+out_shape = (256, 72, 11, 11)
+with h5py.File(args.out_file, 'w') as h5f:
+    if args.train:
+        save_features(train_dataloader, h5f, out_shape, 'train')
+    if args.val:
+        save_features(val_dataloader, h5f, out_shape, 'val')
+    if args.test:
+        raise NotImplementedError('Test feature extraction')
+        save_features(test_dataloader, h5f, out_shape, 'test')

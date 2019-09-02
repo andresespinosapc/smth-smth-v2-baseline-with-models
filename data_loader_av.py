@@ -48,10 +48,12 @@ class VideoFolder(torch.utils.data.Dataset):
 
         try:
             imgs = []
-            imgs = [f.to_rgb().to_nd_array() for f in reader.decode(video=0)]
+            imgs = [f.to_rgb().to_ndarray() for f in reader.decode(video=0)]
         except (RuntimeError, ZeroDivisionError) as exception:
             print('{}: WEBM reader cannot open {}. Empty '
                   'list returned.'.format(type(exception).__name__, item.path))
+
+        reader.close()
 
         imgs = self.transform_pre(imgs)
         imgs, label = self.augmentor(imgs, item.label)
