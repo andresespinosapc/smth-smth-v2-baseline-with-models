@@ -1,3 +1,5 @@
+from comet_ml import Experiment
+
 import os
 import sys
 import time
@@ -16,9 +18,14 @@ import torchvision
 from transforms_video import *
 
 
+experiment = Experiment(project_name='mac-actions', workspace='andresespinosapc')
+
+
 # load configurations
 args = load_args()
 config = load_json_config(args.config)
+
+experiment.log_parameters(config)
 
 # set column model
 file_name = config['conv_model']
@@ -78,6 +85,24 @@ def main():
         else:
             print(" !#! No checkpoint found at '{}'".format(
                 checkpoint_path))
+    elif config.get('finetune_from') is not None:
+        print(' > Loading checkpoint to finetune')
+        finetune_model_name = config['finetune_from']
+        checkpoint_path = os.path.join(config['output_dir'],
+                                   finetune_model_name,
+                                   'model_best.pth.tar')
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint['state_dict'])
+        print(" > Loaded checkpoint '{}' (epoch {}))"
+            .format(checkpoint_path, checkpoint['epoch']))
+        # Freeze first 3 blocks
+        for param in model.conv_column.block1.parameters():
+            param.requires_grad = False
+        for param in model.conv_column.block2.parameters():
+            param.requires_grad = False
+        for param in model.conv_column.block3.parameters():
+            param.requires_grad = False
+        
 
     # define augmentation pipeline
     upscale_size_train = int(config['input_spatial_size'] * config["upscale_factor_train"])
@@ -209,12 +234,27 @@ def main():
             print(" > Training is DONE by learning rate {}".format(last_lr))
             sys.exit(1)
 
-        # train for one epoch
-        train_loss, train_top1, train_top5 = train(
-            train_loader, model, criterion, optimizer, epoch)
+        with experiment.train():
+            # train for one epoch
+            train_loss, train_top1, train_top5 = train(
+                train_loader, model, criterion, optimizer, epoch)
+            metrics = {
+                'loss': train_loss,
+                'top1': train_top1,
+                'top5': train_top5,
+            }
+            experiment.log_metrics(metrics)
 
-        # evaluate on validation set
-        val_loss, val_top1, val_top5 = validate(val_loader, model, criterion)
+        with experiment.validate():
+            # evaluate on validation set
+            val_loss, val_top1, val_top5 = validate(val_loader, model, criterion)
+            metrics = {
+                'loss': val_loss,
+                'top1': val_top1,
+                'top5': val_top5,
+            }
+            experiment.log_metrics(metrics)
+        experiment.log_metric('epoch', epoch)
 
         # set learning rate
         lr_decayer.step(val_loss, epoch)
