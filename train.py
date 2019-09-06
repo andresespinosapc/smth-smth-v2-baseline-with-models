@@ -69,6 +69,17 @@ def main():
     # multi GPU setting
     model = torch.nn.DataParallel(model, device_ids).to(device)
 
+    # define optimizer
+    lr = config["lr"]
+    last_lr = config["last_lr"]
+    momentum = config['momentum']
+    weight_decay = config['weight_decay']
+    optimizer = torch.optim.SGD(model.parameters(), lr,
+                                momentum=momentum,
+                                weight_decay=weight_decay)
+    lr_decayer = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                        optimizer, 'min', factor=0.5, patience=2, verbose=True)
+
     # optionally resume from a checkpoint
     checkpoint_path = os.path.join(config['output_dir'],
                                    config['model_name'],
@@ -80,6 +91,12 @@ def main():
             args.start_epoch = checkpoint['epoch']
             best_loss = checkpoint['best_loss']
             model.load_state_dict(checkpoint['state_dict'])
+            lr_decayer.load_state_dict(checkpoint['scheduler'])
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            # for state in optimizer.state.values():
+            #     for k, v in state.items():
+            #         if isinstance(v, torch.Tensor):
+            #             state[k] = v.to(device)
             print(" > Loaded checkpoint '{}' (epoch {})"
                   .format(checkpoint_path, checkpoint['epoch']))
         else:
@@ -96,11 +113,11 @@ def main():
         print(" > Loaded checkpoint '{}' (epoch {}))"
             .format(checkpoint_path, checkpoint['epoch']))
         # Freeze first 3 blocks
-        for param in model.conv_column.block1.parameters():
+        for param in model.module.conv_column.block1.parameters():
             param.requires_grad = False
-        for param in model.conv_column.block2.parameters():
+        for param in model.module.conv_column.block2.parameters():
             param.requires_grad = False
-        for param in model.conv_column.block3.parameters():
+        for param in model.module.conv_column.block3.parameters():
             param.requires_grad = False
         
 
@@ -196,15 +213,6 @@ def main():
     # define loss function (criterion)
     criterion = nn.CrossEntropyLoss().to(device)
 
-    # define optimizer
-    lr = config["lr"]
-    last_lr = config["last_lr"]
-    momentum = config['momentum']
-    weight_decay = config['weight_decay']
-    optimizer = torch.optim.SGD(model.parameters(), lr,
-                                momentum=momentum,
-                                weight_decay=weight_decay)
-
     if args.eval_only:
         validate(val_loader, model, criterion, train_data.classes_dict)
         print(" > Evaluation DONE !")
@@ -213,8 +221,6 @@ def main():
     # set callbacks
     plotter = PlotLearning(os.path.join(
         save_dir, "plots"), config["num_classes"])
-    lr_decayer = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                        optimizer, 'min', factor=0.5, patience=2, verbose=True)
     val_loss = float('Inf')
 
     # set end condition by num epochs
@@ -239,7 +245,7 @@ def main():
             train_loss, train_top1, train_top5 = train(
                 train_loader, model, criterion, optimizer, epoch)
             metrics = {
-                'loss': train_loss,
+                'avg_loss': train_loss,
                 'top1': train_top1,
                 'top5': train_top5,
             }
@@ -249,7 +255,7 @@ def main():
             # evaluate on validation set
             val_loss, val_top1, val_top5 = validate(val_loader, model, criterion)
             metrics = {
-                'loss': val_loss,
+                'avg_loss': val_loss,
                 'top1': val_top1,
                 'top5': val_top5,
             }
@@ -277,6 +283,8 @@ def main():
             'epoch': epoch + 1,
             'arch': "Conv4Col",
             'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'scheduler': lr_decayer.state_dict(),
             'best_loss': best_loss,
         }, is_best, config)
 
