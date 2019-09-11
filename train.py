@@ -109,7 +109,9 @@ def main():
                                    finetune_model_name,
                                    'model_best.pth.tar')
         checkpoint = torch.load(checkpoint_path)
+        model.module.clf_layers = nn.Sequential(nn.Linear(model.module.column_units, 174)).to(device)
         model.load_state_dict(checkpoint['state_dict'])
+        model.module.clf_layers = nn.Sequential(nn.Linear(model.module.column_units, config['num_classes'])).to(device)
         print(" > Loaded checkpoint '{}' (epoch {}))"
             .format(checkpoint_path, checkpoint['epoch']))
         # Freeze first 3 blocks
