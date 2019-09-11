@@ -248,8 +248,8 @@ def main():
                 train_loader, model, criterion, optimizer, epoch)
             metrics = {
                 'avg_loss': train_loss,
-                'top1': train_top1,
-                'top5': train_top5,
+                'avg_top1': train_top1,
+                'avg_top5': train_top5,
             }
             experiment.log_metrics(metrics)
 
@@ -258,8 +258,8 @@ def main():
             val_loss, val_top1, val_top5 = validate(val_loader, model, criterion)
             metrics = {
                 'avg_loss': val_loss,
-                'top1': val_top1,
-                'top5': val_top5,
+                'avg_top1': val_top1,
+                'avg_top5': val_top5,
             }
             experiment.log_metrics(metrics)
         experiment.log_metric('epoch', epoch)
